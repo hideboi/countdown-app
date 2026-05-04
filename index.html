@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Death Date Countdown</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --text: #e8eef5;
+      --muted: #8b9cb3;
+      --accent: #5b9fd4;
+      --danger: #e06c6c;
+      --radius: 12px;
+      --safe-bottom: env(safe-area-inset-bottom, 0);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1rem;
+      padding-bottom: calc(1rem + var(--safe-bottom));
+    }
+    h1 {
+      font-size: clamp(1.25rem, 4vw, 1.5rem);
+      font-weight: 600;
+      margin: 0 0 1rem;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 0.75rem 0.85rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 44px;
+    }
+    input.birth-digit {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+    fieldset.birth-fieldset {
+      border: none;
+      margin: 0;
+      padding: 0;
+      min-width: 0;
+    }
+    fieldset.birth-fieldset legend {
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding: 0;
+      margin-bottom: 0.35rem;
+    }
+    .birth-inputs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+    .birth-cell {
+      flex: 0 0 auto;
+    }
+    .birth-cell.birth-year {
+      width: 5.5rem;
+      min-width: 4.75rem;
+    }
+    .birth-cell.birth-mo,
+    .birth-cell.birth-da {
+      width: 3.35rem;
+      min-width: 2.85rem;
+    }
+    .birth-cell input {
+      width: 100%;
+    }
+    input:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .row {
+      display: grid;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    @media (min-width: 480px) {
+      .row.two { grid-template-columns: 1fr 1fr; }
+    }
+    button {
+      min-height: 44px;
+      padding: 0.65rem 1rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #0a0e12;
+    }
+    .btn-primary:active { opacity: 0.92; }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      padding: 0.5rem 0.75rem;
+      min-height: 40px;
+      font-size: 0.9rem;
+    }
+    .entries { margin-top: 1.25rem; }
+    .entry {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--surface);
+      border-radius: var(--radius);
+      margin-bottom: 0.65rem;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .entry-main { flex: 1; min-width: 0; }
+    .entry-name {
+      font-weight: 600;
+      font-size: 1.05rem;
+      word-break: break-word;
+    }
+    .entry-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+    .entry-death {
+      font-size: 0.9rem;
+      color: var(--text);
+      margin-top: 0.35rem;
+    }
+    .countdown {
+      font-size: clamp(1rem, 3.5vw, 1.35rem);
+      font-weight: 700;
+      color: var(--accent);
+      margin-top: 0.45rem;
+      font-variant-numeric: tabular-nums;
+      word-break: break-word;
+    }
+    .countdown.past { color: var(--muted); font-size: 1rem; font-weight: 600; }
+    .preview {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .preview strong { color: var(--text); }
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem 1rem;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Death Date Countdown</h1>
+
+  <div class="card">
+    <form id="form" autocomplete="off">
+      <div class="row two">
+        <div>
+          <label for="name">名前</label>
+          <input id="name" type="text" placeholder="例: 自分" maxlength="120" required />
+        </div>
+        <fieldset class="birth-fieldset">
+          <legend>生年月日</legend>
+          <div class="birth-inputs">
+            <div class="birth-cell birth-year">
+              <label for="birth-y">年</label>
+              <input
+                id="birth-y"
+                class="birth-digit"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="4"
+                placeholder="1990"
+                autocomplete="bday-year"
+                aria-required="true"
+              />
+            </div>
+            <div class="birth-cell birth-mo">
+              <label for="birth-m">月</label>
+              <input
+                id="birth-m"
+                class="birth-digit"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="2"
+                placeholder="1"
+                autocomplete="bday-month"
+                aria-required="true"
+              />
+            </div>
+            <div class="birth-cell birth-da">
+              <label for="birth-d">日</label>
+              <input
+                id="birth-d"
+                class="birth-digit"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="2"
+                placeholder="1"
+                autocomplete="bday-day"
+                aria-required="true"
+              />
+            </div>
+          </div>
+        </fieldset>
+      </div>
+      <div class="row">
+        <div>
+          <label for="age">死亡時の希望年齢（歳）</label>
+          <input id="age" type="number" min="0" max="150" step="0.01" placeholder="例: 80" required />
+        </div>
+      </div>
+      <p class="preview" id="preview" aria-live="polite">
+        生年月日と希望年齢を入力すると、ここに算出された死亡予定日が表示されます。
+      </p>
+      <button type="submit" class="btn-primary">追加</button>
+    </form>
+  </div>
+
+  <div class="entries" id="entries"></div>
+
+  <script>
+    (function () {
+      var STORAGE_KEY = "deathCountdownEntries_v1";
+
+      function loadEntries() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [];
+          var data = JSON.parse(raw);
+          return Array.isArray(data) ? data : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveEntries(entries) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      }
+
+      function parseYmd(iso) {
+        if (!iso || typeof iso !== "string") return null;
+        var p = iso.split("-");
+        if (p.length !== 3) return null;
+        var y = parseInt(p[0], 10);
+        var m = parseInt(p[1], 10) - 1;
+        var d = parseInt(p[2], 10);
+        if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+        return new Date(y, m, d, 0, 0, 0, 0);
+      }
+
+      function deathFromBirthAndAge(birthIso, ageYears) {
+        var birth = parseYmd(birthIso);
+        if (!birth || ageYears == null || isNaN(ageYears)) return null;
+        var death = new Date(birth.getTime());
+        var yAdd = Math.floor(ageYears);
+        death.setFullYear(death.getFullYear() + yAdd);
+        var frac = ageYears - yAdd;
+        if (frac > 1e-6) {
+          death.setTime(death.getTime() + frac * 365.25 * 24 * 60 * 60 * 1000);
+        }
+        return death;
+      }
+
+      function deathFromLegacyDate(iso) {
+        return parseYmd(iso);
+      }
+
+      function getDeathMoment(entry) {
+        if (entry.birthDate && entry.ageAtDeath != null && entry.ageAtDeath !== "") {
+          var age = Number(entry.ageAtDeath);
+          return deathFromBirthAndAge(entry.birthDate, age);
+        }
+        if (entry.date) return deathFromLegacyDate(entry.date);
+        return null;
+      }
+
+      function formatDeathDateLabel(d) {
+        if (!d || isNaN(d.getTime())) return "—";
+        return d.toLocaleDateString("ja-JP", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      }
+
+      function splitDuration(totalSeconds) {
+        var s = Math.floor(Math.abs(totalSeconds));
+        var days = Math.floor(s / 86400);
+        s -= days * 86400;
+        var hours = Math.floor(s / 3600);
+        s -= hours * 3600;
+        var minutes = Math.floor(s / 60);
+        var seconds = s - minutes * 60;
+        return { days: days, hours: hours, minutes: minutes, seconds: seconds };
+      }
+
+      function formatCountdownParts(parts) {
+        return (
+          parts.days +
+          " 日 " +
+          parts.hours +
+          " 時間 " +
+          parts.minutes +
+          " 分 " +
+          parts.seconds +
+          " 秒"
+        );
+      }
+
+      function uid() {
+        return "e_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 9);
+      }
+
+      var form = document.getElementById("form");
+      var nameInput = document.getElementById("name");
+      var birthY = document.getElementById("birth-y");
+      var birthM = document.getElementById("birth-m");
+      var birthD = document.getElementById("birth-d");
+      var ageInput = document.getElementById("age");
+      var previewEl = document.getElementById("preview");
+      var entriesEl = document.getElementById("entries");
+
+      function digitsOnly(el, maxLen) {
+        el.value = el.value.replace(/\D/g, "").slice(0, maxLen);
+      }
+
+      function pad2(n) {
+        return n < 10 ? "0" + n : String(n);
+      }
+
+      /**
+       * 年4桁 + 月・日（それぞれ1〜2桁、先頭ゼロ省略可。月が「0」のみは2桁目待ち）
+       * カレンダー上妥当なら { ok, iso }。未入力は complete: false
+       */
+      function getValidatedBirthIso() {
+        var yStr = birthY.value;
+        var mStr = birthM.value;
+        var dStr = birthD.value;
+
+        if (yStr.length !== 4) return { ok: false, iso: null, complete: false };
+        if (mStr.length < 1 || dStr.length < 1) return { ok: false, iso: null, complete: false };
+        if (mStr === "0") return { ok: false, iso: null, complete: false };
+        if (dStr === "0") return { ok: false, iso: null, complete: false };
+
+        var y = parseInt(yStr, 10);
+        var m = parseInt(mStr, 10);
+        var d = parseInt(dStr, 10);
+        if (isNaN(y) || isNaN(m) || isNaN(d)) {
+          return { ok: false, iso: null, complete: true };
+        }
+        if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) {
+          return { ok: false, iso: null, complete: true };
+        }
+        var dt = new Date(y, m - 1, d);
+        if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) {
+          return { ok: false, iso: null, complete: true };
+        }
+        return { ok: true, iso: y + "-" + pad2(m) + "-" + pad2(d), complete: true };
+      }
+
+      function updatePreview() {
+        var age = ageInput.value === "" ? NaN : Number(ageInput.value);
+        var birthInfo = getValidatedBirthIso();
+
+        if (!birthInfo.complete) {
+          previewEl.innerHTML =
+            "生年月日（年4桁・月は1〜12・日は1〜31、月日は1桁でも可）と希望年齢を入力すると、ここに<strong>算出された死亡予定日</strong>が表示されます。";
+          return;
+        }
+        if (!birthInfo.ok) {
+          previewEl.textContent =
+            "生年月日が無効です。年は1900〜2100、月は1〜12、その月で存在する日を入力してください。";
+          return;
+        }
+        if (isNaN(age) || age < 0) {
+          previewEl.innerHTML =
+            "生年月日は有効です。<strong>希望年齢</strong>を入力すると、算出された死亡予定日が表示されます。";
+          return;
+        }
+
+        var death = deathFromBirthAndAge(birthInfo.iso, age);
+        if (!death || isNaN(death.getTime())) {
+          previewEl.textContent = "算出できません。入力を確認してください。";
+          return;
+        }
+        previewEl.innerHTML =
+          "<strong>算出された死亡予定日:</strong> " + formatDeathDateLabel(death);
+      }
+
+      birthY.addEventListener("input", function () {
+        digitsOnly(birthY, 4);
+        if (birthY.value.length === 4) birthM.focus();
+        updatePreview();
+      });
+      birthM.addEventListener("input", function () {
+        digitsOnly(birthM, 2);
+        var mv = birthM.value;
+        if (mv.length === 2 || /^[2-9]$/.test(mv)) birthD.focus();
+        updatePreview();
+      });
+      birthM.addEventListener("blur", function () {
+        var mv = birthM.value;
+        if (mv.length === 1 && /^[1-9]$/.test(mv)) birthD.focus();
+      });
+      birthD.addEventListener("input", function () {
+        digitsOnly(birthD, 2);
+        updatePreview();
+      });
+      ageInput.addEventListener("input", updatePreview);
+
+      function renderEntries() {
+        var entries = loadEntries();
+        entriesEl.innerHTML = "";
+
+        if (!entries.length) {
+          var empty = document.createElement("p");
+          empty.className = "empty";
+          empty.textContent =
+            "まだエントリがありません。名前・生年月日・希望年齢を追加してください。";
+          entriesEl.appendChild(empty);
+          return;
+        }
+
+        entries.forEach(function (entry) {
+          var death = getDeathMoment(entry);
+          var wrap = document.createElement("article");
+          wrap.className = "entry";
+          wrap.setAttribute("data-id", entry.id);
+
+          var main = document.createElement("div");
+          main.className = "entry-main";
+
+          var nameEl = document.createElement("div");
+          nameEl.className = "entry-name";
+          nameEl.textContent = entry.name || "(無題)";
+
+          var meta = document.createElement("div");
+          meta.className = "entry-meta";
+          if (entry.birthDate != null && entry.ageAtDeath != null && entry.ageAtDeath !== "") {
+            meta.textContent =
+              "生年月日 " +
+              entry.birthDate +
+              " ／ 希望年齢 " +
+              entry.ageAtDeath +
+              " 歳";
+          } else if (entry.date) {
+            meta.textContent = "（旧形式: 目標日のみ保存）";
+          } else {
+            meta.textContent = "";
+          }
+
+          var deathRow = document.createElement("div");
+          deathRow.className = "entry-death";
+          if (!death || isNaN(death.getTime())) {
+            deathRow.textContent = "算出された死亡予定日: 計算できません";
+          } else {
+            deathRow.textContent = "算出された死亡予定日: " + formatDeathDateLabel(death);
+          }
+
+          var cd = document.createElement("div");
+          cd.className = "countdown";
+          cd.setAttribute("data-entry-id", entry.id);
+
+          main.appendChild(nameEl);
+          main.appendChild(meta);
+          main.appendChild(deathRow);
+          main.appendChild(cd);
+
+          var del = document.createElement("button");
+          del.type = "button";
+          del.className = "btn-danger";
+          del.textContent = "削除";
+          del.setAttribute("aria-label", "「" + (entry.name || "") + "」を削除");
+          del.addEventListener("click", function () {
+            var next = loadEntries().filter(function (e) {
+              return e.id !== entry.id;
+            });
+            saveEntries(next);
+            renderEntries();
+            updateAllCountdowns();
+          });
+
+          wrap.appendChild(main);
+          wrap.appendChild(del);
+          entriesEl.appendChild(wrap);
+        });
+
+        updateAllCountdowns();
+      }
+
+      function updateAllCountdowns() {
+        var entries = loadEntries();
+        var now = Date.now();
+
+        entries.forEach(function (entry) {
+          var el = entriesEl.querySelector('.countdown[data-entry-id="' + entry.id + '"]');
+          if (!el) return;
+
+          var death = getDeathMoment(entry);
+          if (!death || isNaN(death.getTime())) {
+            el.className = "countdown past";
+            el.textContent = "日付が無効です";
+            return;
+          }
+
+          var diffMs = death.getTime() - now;
+          var totalSec = Math.floor(diffMs / 1000);
+
+          if (totalSec > 0) {
+            el.className = "countdown";
+            el.textContent = "残り " + formatCountdownParts(splitDuration(totalSec));
+          } else if (totalSec === 0) {
+            el.className = "countdown";
+            el.textContent = "残り 0 日 0 時間 0 分 0 秒";
+          } else {
+            el.className = "countdown past";
+            var p = splitDuration(totalSec);
+            el.textContent =
+              "到来済み（" +
+              p.days +
+              " 日 " +
+              p.hours +
+              " 時間 " +
+              p.minutes +
+              " 分 " +
+              p.seconds +
+              " 秒前）";
+          }
+        });
+      }
+
+      form.addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        var name = nameInput.value.trim();
+        var birthInfo = getValidatedBirthIso();
+        var age = ageInput.value === "" ? NaN : Number(ageInput.value);
+        if (!name || !birthInfo.ok || !birthInfo.iso || isNaN(age) || age < 0) return;
+
+        var death = deathFromBirthAndAge(birthInfo.iso, age);
+        if (!death || isNaN(death.getTime())) return;
+
+        var entries = loadEntries();
+        entries.push({
+          id: uid(),
+          name: name,
+          birthDate: birthInfo.iso,
+          ageAtDeath: age,
+        });
+        saveEntries(entries);
+        nameInput.value = "";
+        birthY.value = "";
+        birthM.value = "";
+        birthD.value = "";
+        ageInput.value = "";
+        updatePreview();
+        nameInput.focus();
+        renderEntries();
+      });
+
+      renderEntries();
+      setInterval(updateAllCountdowns, 1000);
+    })();
+  </script>
+</body>
+</html>
