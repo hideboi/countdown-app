@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Death Date Countdown</title>
+  <title>Countdown</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -26,10 +26,47 @@
       padding: 1rem;
       padding-bottom: calc(1rem + var(--safe-bottom));
     }
+    .app-header {
+      margin-bottom: 1rem;
+    }
     h1 {
       font-size: clamp(1.25rem, 4vw, 1.5rem);
       font-weight: 600;
-      margin: 0 0 1rem;
+      margin: 0 0 0.65rem;
+    }
+    .btn-add {
+      position: fixed;
+      top: max(0.75rem, env(safe-area-inset-top, 0));
+      right: 1rem;
+      z-index: 20;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      min-height: 40px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid rgba(91, 159, 212, 0.45);
+      background: rgba(91, 159, 212, 0.12);
+      color: var(--accent);
+      cursor: pointer;
+      font-family: inherit;
+      line-height: 1.2;
+    }
+    .btn-add:active {
+      opacity: 0.9;
+    }
+    .btn-add:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .btn-add[hidden] {
+      display: none !important;
+    }
+    .form-panel[hidden] {
+      display: none !important;
     }
     .card {
       background: var(--surface);
@@ -180,14 +217,27 @@
     .empty {
       text-align: center;
       color: var(--muted);
-      padding: 2rem 1rem;
+      padding: 1.25rem 1rem 0.5rem;
       font-size: 0.95rem;
     }
   </style>
 </head>
 <body>
-  <h1>Death Date Countdown</h1>
+  <header class="app-header" id="app-header" role="banner">
+    <h1>Countdown</h1>
+    <button
+      type="button"
+      id="btn-add"
+      class="btn-add"
+      aria-expanded="false"
+      aria-controls="form-panel"
+      hidden
+    >
+      ＋ 追加
+    </button>
+  </header>
 
+  <div id="form-panel" class="form-panel" hidden aria-hidden="true">
   <div class="card">
     <form id="form" autocomplete="off">
       <div class="row two">
@@ -254,6 +304,7 @@
       </p>
       <button type="submit" class="btn-primary">追加</button>
     </form>
+  </div>
   </div>
 
   <div class="entries" id="entries"></div>
@@ -352,6 +403,8 @@
       }
 
       var form = document.getElementById("form");
+      var formPanel = document.getElementById("form-panel");
+      var btnAdd = document.getElementById("btn-add");
       var nameInput = document.getElementById("name");
       var birthY = document.getElementById("birth-y");
       var birthM = document.getElementById("birth-m");
@@ -359,6 +412,25 @@
       var ageInput = document.getElementById("age");
       var previewEl = document.getElementById("preview");
       var entriesEl = document.getElementById("entries");
+
+      var hasEntries = false;
+      var manualFormOpen = false;
+
+      function setFormOpen(open) {
+        formPanel.hidden = !open;
+        formPanel.setAttribute("aria-hidden", open ? "false" : "true");
+        btnAdd.setAttribute("aria-expanded", open ? "true" : "false");
+        btnAdd.textContent = open ? "閉じる" : "＋ 追加";
+        if (open) {
+          nameInput.focus();
+        }
+      }
+
+      btnAdd.addEventListener("click", function () {
+        if (!hasEntries) return;
+        manualFormOpen = formPanel.hidden;
+        setFormOpen(manualFormOpen);
+      });
 
       function digitsOnly(el, maxLen) {
         el.value = el.value.replace(/\D/g, "").slice(0, maxLen);
@@ -450,14 +522,17 @@
 
       function renderEntries() {
         var entries = loadEntries();
+        hasEntries = entries.length > 0;
+        btnAdd.hidden = !hasEntries;
+        if (!hasEntries) {
+          manualFormOpen = true;
+          setFormOpen(true);
+        } else {
+          setFormOpen(manualFormOpen);
+        }
         entriesEl.innerHTML = "";
 
         if (!entries.length) {
-          var empty = document.createElement("p");
-          empty.className = "empty";
-          empty.textContent =
-            "まだエントリがありません。名前・生年月日・希望年齢を追加してください。";
-          entriesEl.appendChild(empty);
           return;
         }
 
@@ -593,7 +668,7 @@
         birthD.value = "";
         ageInput.value = "";
         updatePreview();
-        nameInput.focus();
+        manualFormOpen = false;
         renderEntries();
       });
 
